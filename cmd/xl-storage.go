@@ -1575,6 +1575,8 @@ func (s *xlStorage) openFileNoSync(filePath string, mode int) (f *os.File, err e
 	return w, nil
 }
 
+var disableODirect = env.Get("MINIO_API_DISABLE_ODIRECT", config.EnableOff) == config.EnableOn
+
 // ReadFileStream - Returns the read stream of the file.
 func (s *xlStorage) ReadFileStream(ctx context.Context, volume, path string, offset, length int64) (io.ReadCloser, error) {
 	if offset < 0 {
@@ -1636,7 +1638,7 @@ func (s *xlStorage) ReadFileStream(ctx context.Context, volume, path string, off
 	}
 
 	alignment := offset%xioutil.DirectioAlignSize == 0
-	if !alignment {
+	if !alignment || disableODirect {
 		if err = disk.DisableDirectIO(file); err != nil {
 			file.Close()
 			return nil, err
